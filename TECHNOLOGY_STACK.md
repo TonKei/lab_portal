@@ -8,6 +8,7 @@
 ## 🎯 Technology Stack Requirements Analysis
 
 ### Key System Requirements
+- **Python Runtime:** Python 3.11.x (EOL October 2027) - **critical for long-term security support**
 - **DHCP Service Management:** Web interface for DHCP lease/reservation management, service control (start/stop/restart), configuration editing - **requires root/sudo privileges**
 - **Multi-Level Authentication:** Database + PAM integration for system service access
 - **Real-Time Features:** Device status updates, live notifications
@@ -153,7 +154,62 @@
 
 ---
 
-## 🔒 Authentication & Security Stack
+## � Python Version Analysis & Decision
+
+### ✅ **Final Decision: Python 3.11.x**
+
+**Critical Security Consideration:**
+- **Python 3.9 EOL:** October 2025 (3 months away) - **SECURITY RISK**
+- **Python 3.11 EOL:** October 2027 (2+ years) - **SECURE FOR PROJECT LIFECYCLE**
+
+### **Python 3.11.x Benefits:**
+
+**Long-term Security:**
+- ✅ **2+ years of security updates** beyond project deployment
+- ✅ **Production-safe** for labs deployed through 2027
+- ✅ **Active maintenance** with bug fixes and security patches
+
+**Performance Improvements:**
+- ✅ **10-60% faster execution** compared to Python 3.9
+- ✅ **Better memory efficiency** for web applications
+- ✅ **Enhanced asyncio performance** (benefits Flask-SocketIO)
+
+**Development Experience:**
+- ✅ **Improved error messages** for faster debugging
+- ✅ **Enhanced typing support** for better code quality
+- ✅ **Modern Python features** without breaking compatibility
+
+### **Compatibility Verification:**
+
+**Available on Target Platform:**
+- ✅ **Rocky Linux 9.x:** Python 3.11 available in system repositories
+- ✅ **Current Development Environment:** Python 3.11.11 already installed
+- ✅ **OVA Packaging:** Can use system Python 3.11 or bundle if needed
+
+**Library Compatibility:**
+- ✅ **All chosen libraries** support Python 3.11
+- ✅ **Flask ecosystem:** Excellent Python 3.11 support
+- ✅ **Database drivers:** psycopg2-binary fully compatible
+- ✅ **Device libraries:** pysnmp, pymodbus, python-nmap all compatible
+- ✅ **Testing framework:** pytest has excellent Python 3.11 support
+
+### **Deployment Strategy:**
+
+**Development:**
+```bash
+# Use Python 3.11 for all development
+python3.11 -m venv venv
+source venv/bin/activate
+```
+
+**Production OVA:**
+- **Option 1:** Use system Python 3.11 from Rocky Linux repos (recommended)
+- **Option 2:** Bundle Python 3.11 if specific version control needed
+- **Dependencies:** Install PAM development headers for python-pam compilation
+
+---
+
+## �🔒 Authentication & Security Stack
 
 ### PAM Integration Requirement
 **Critical for Function #3 - DHCP Service Management:**
@@ -180,6 +236,9 @@
 
 ### Backend Dependencies:
 ```python
+# Python Version Requirement: 3.11.x (recommended 3.11.11+)
+# EOL: October 2027 - ensures long-term security support for production deployments
+
 # Core Framework
 Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
@@ -339,21 +398,27 @@ lab_portal/
 ## 🚀 Development Workflow
 
 ### Phase 1: Environment Setup
-1. **Virtual Environment:**
+1. **Virtual Environment (Python 3.11.x):**
    ```bash
-   python3 -m venv venv
+   python3.11 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
    ```
 
-2. **Database Setup:**
+2. **Development Dependencies Installation:**
+   ```bash
+   # Install PAM development headers (required for python-pam)
+   sudo dnf install pam-devel python3.11-devel gcc
+   ```
+
+3. **Database Setup:**
    ```bash
    flask db init
    flask db migrate -m "Initial migration"
    flask db upgrade
    ```
 
-3. **Development Server:**
+4. **Development Server:**
    ```bash
    flask run --debug
    ```
@@ -373,6 +438,7 @@ pytest --cov=app --cov-report=html tests/
 
 | Component | Choice | Rationale |
 |-----------|--------|-----------|
+| **Python Version** | Python 3.11.x | Long-term security support (EOL 2027), performance improvements |
 | **Backend Framework** | Flask | Traditional web app, admin panels, simpler deployment |
 | **Frontend Approach** | Flask Templates + Bootstrap + Alpine.js | Server-side rendering with progressive enhancement |
 | **Database** | PostgreSQL (prod) + SQLite (dev) | Production reliability with development simplicity |
@@ -432,6 +498,26 @@ All major technology decisions have been made based on functional requirements a
 ---
 
 ## 📝 Open Questions for Discussion
+
+### ✅ RESOLVED: Python Version Selection
+**Decision: Python 3.11.x (3.11.11+ recommended)**
+
+**Rationale Based on Security Timeline:**
+- **Python 3.9 EOL Risk:** Python 3.9 reaches end-of-life in October 2025 (3 months away)
+- **Long-term Security:** Python 3.11 supported until October 2027 (2+ years)
+- **Performance Benefits:** 10-60% performance improvement over Python 3.9
+- **Platform Availability:** Python 3.11 available on Rocky Linux 9.x target environment
+- **Library Compatibility:** All chosen dependencies fully support Python 3.11
+
+**Implementation:**
+```bash
+# Development environment
+python3.11 -m venv venv
+source venv/bin/activate
+
+# Required system packages for python-pam
+sudo dnf install pam-devel python3.11-devel gcc
+```
 
 ### ✅ RESOLVED: Asset Delivery Method 
 **Decision: Local Files (Self-Contained OVA)**

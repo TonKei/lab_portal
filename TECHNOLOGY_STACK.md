@@ -8,7 +8,8 @@
 ## 🎯 Technology Stack Requirements Analysis
 
 ### Key System Requirements
-- **Multi-Level Authentication:** Database + PAM integration
+- **DHCP Service Management:** Web interface for DHCP lease/reservation management, service control (start/stop/restart), configuration editing - **requires root/sudo privileges**
+- **Multi-Level Authentication:** Database + PAM integration for system service access
 - **Real-Time Features:** Device status updates, live notifications
 - **Device Interaction:** SNMP, Modbus TCP, embedded nmap
 - **Content Management:** Admin-editable help content, logos, banners
@@ -154,12 +155,24 @@
 
 ## 🔒 Authentication & Security Stack
 
+### PAM Integration Requirement
+**Critical for Function #3 - DHCP Service Management:**
+- DHCP service control (`systemctl restart dhcpd`, `systemctl stop dhcpd`)
+- DHCP configuration file editing (`/etc/dhcp/dhcpd.conf`)
+- System log access for DHCP troubleshooting
+- Network service management requiring root/sudo privileges
+
 ### Core Components:
 - **Flask-Login:** Session management and user authentication
-- **python-pam:** PAM integration for admin authentication
+- **python-pam:** PAM integration for admin authentication (system privilege validation)
 - **Werkzeug:** Password hashing and security utilities
 - **Flask-WTF:** CSRF protection and form validation
 - **Flask-Limiter:** Rate limiting for API endpoints
+
+### Authentication Flow:
+1. **Database Authentication:** Standard user login for portal access
+2. **PAM Verification:** Admin operations require PAM authentication for system privileges
+3. **Privilege Escalation:** Secure sudo execution for DHCP service management
 
 ---
 
@@ -183,14 +196,26 @@ alembic==1.12.0  # Database migrations
 python-pam==2.0.2
 Werkzeug==2.3.7
 
+# Content Management & Rich Text
+Flask-CKEditor==0.4.6  # Rich text editor integration
+markdown==3.5.1  # Markdown processing for help content
+bleach==6.0.0  # HTML sanitization for user content
+
 # Device Interaction
 pysnmp==4.4.12  # SNMP functionality
 pymodbus==3.4.1  # Modbus TCP client
 python-nmap==0.7.1  # Network scanning
 
-# Real-time Features
+# External API Integration
+requests==2.31.0  # For KEA DHCP API and VMware API calls
+urllib3==2.0.4  # HTTP client library
+
+# Real-time Features (Phase 2)
 Flask-SocketIO==5.3.6
 eventlet==0.33.3
+
+# Scheduling & Background Tasks
+APScheduler==3.10.4  # For hourly service status updates
 
 # Testing
 pytest==7.4.2
@@ -198,19 +223,32 @@ pytest-flask==1.2.0
 pytest-cov==4.1.0
 ```
 
-### Frontend Dependencies:
+### Frontend Dependencies (Local Assets):
 ```html
-<!-- CSS Framework -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Core CSS Framework (Local) -->
+<link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/base.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
 
-<!-- JavaScript Framework -->
-<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<!-- JavaScript Framework (Local) -->
+<script src="{{ url_for('static', filename='vendor/alpinejs/alpine.min.js') }}" defer></script>
 
-<!-- Real-time Communication -->
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<!-- Real-time Communication (Phase 2) -->
+<script src="{{ url_for('static', filename='vendor/socket.io/socket.io.min.js') }}"></script>
 
-<!-- Additional Utilities -->
-<script src="https://cdn.jsdelivr.net/npm/axios@1.5.0/dist/axios.min.js"></script>
+<!-- HTTP Client & Rich Text Editor -->
+<script src="{{ url_for('static', filename='vendor/axios/axios.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/ckeditor/ckeditor.js') }}"></script>
+
+<!-- Bootstrap JavaScript -->
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+```
+
+**Asset Download for OVA Packaging:**
+```bash
+# Development setup script to download and package assets locally
+./scripts/download-assets.sh
+# Downloads Bootstrap, Alpine.js, CKEditor, etc. to app/static/vendor/
 ```
 
 ---
@@ -227,6 +265,7 @@ lab_portal/
 │   │   ├── user.py
 │   │   ├── device.py
 │   │   ├── group.py
+│   │   ├── content.py        # Help content, site content models
 │   │   └── feedback.py
 │   ├── auth/
 │   │   ├── __init__.py
@@ -235,7 +274,13 @@ lab_portal/
 │   ├── admin/
 │   │   ├── __init__.py
 │   │   ├── routes.py
-│   │   └── forms.py
+│   │   ├── forms.py
+│   │   └── content.py        # Content management routes
+│   ├── dhcp/
+│   │   ├── __init__.py
+│   │   ├── routes.py
+│   │   ├── service.py        # DHCP service management
+│   │   └── config.py         # DHCP config file parsing
 │   ├── devices/
 │   │   ├── __init__.py
 │   │   ├── routes.py
@@ -245,18 +290,42 @@ lab_portal/
 │   │   ├── snmp.py
 │   │   ├── modbus.py
 │   │   └── nmap.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── dhcp.py           # Internal DHCP API endpoints
+│   │   ├── devices.py        # Device status API endpoints
+│   │   └── admin.py          # Admin API endpoints
 │   ├── static/
 │   │   ├── css/
+│   │   │   ├── base.css      # Core styling
+│   │   │   ├── admin.css     # Admin theme
+│   │   │   └── custom.css    # User-editable styles
 │   │   ├── js/
-│   │   └── images/
+│   │   │   ├── admin.js      # Admin panel interactions
+│   │   │   └── main.js       # General site interactions
+│   │   ├── images/
+│   │   │   └── logos/        # Lab logos, banners
+│   │   └── vendor/           # Local asset storage
+│   │       ├── bootstrap/
+│   │       ├── alpinejs/
+│   │       ├── ckeditor/
+│   │       ├── socket.io/
+│   │       └── axios/
 │   └── templates/
 │       ├── base.html
 │       ├── auth/
 │       ├── admin/
+│       │   ├── content/      # Content management templates
+│       │   └── dashboard.html
+│       ├── dhcp/             # DHCP management templates
 │       ├── devices/
+│       ├── help/             # Help system templates
 │       └── tools/
 ├── tests/
 ├── migrations/
+├── scripts/
+│   ├── download-assets.sh    # Asset packaging for OVA
+│   └── service-monitor.py    # Background service monitoring
 ├── config.py
 ├── requirements.txt
 ├── run.py
@@ -309,7 +378,7 @@ pytest --cov=app --cov-report=html tests/
 | **Database** | PostgreSQL (prod) + SQLite (dev) | Production reliability with development simplicity |
 | **CSS Framework** | Bootstrap 5 | Professional UI, desktop-focused, extensive components |
 | **JavaScript Enhancement** | Alpine.js | Lightweight reactivity without SPA complexity |
-| **Authentication** | Flask-Login + python-pam | Database auth + PAM integration |
+| **Authentication** | Flask-Login + python-pam | Database auth + PAM for DHCP service management |
 | **Real-time Features** | Flask-SocketIO | Device status updates, notifications |
 | **Testing** | pytest + Flask-Testing | Comprehensive TDD support |
 
@@ -317,22 +386,146 @@ pytest --cov=app --cov-report=html tests/
 
 ## 🔄 Next Steps
 
-1. **Create requirements.txt** with specified dependencies
+### ✅ Technology Stack Decisions Complete
+All major technology decisions have been made based on functional requirements analysis.
+
+### 🚀 Priority 1: Development Environment Setup
+
+1. **Create requirements.txt** with finalized dependencies
 2. **Set up project structure** according to recommended layout
-3. **Configure Flask application factory** with blueprints
-4. **Set up database models** starting with User model
-5. **Implement basic authentication** (Function #1)
-6. **Create base templates** with Bootstrap navigation
+3. **Download and package local assets** using asset download script
+4. **Configure Flask application factory** with blueprints
+5. **Set up database models** starting with User and Content models
+6. **Create base templates** with Bootstrap navigation and admin theme
+7. **Implement basic authentication** (Function #1 - User Registration/Login)
+
+### 📋 Development Phases
+
+**Phase 1: Foundation (Weeks 1-2)**
+- Development environment setup
+- Basic authentication system
+- Database models and migrations
+- Base template system with admin theme
+
+**Phase 2: Core Admin Features (Weeks 3-4)**
+- Admin panel with service status dashboard
+- DHCP service management interface
+- Content management system with rich text editor
+- User and device type management
+
+**Phase 3: Device Management (Weeks 5-6)**
+- Network scanner implementation
+- Device discovery and management
+- Group management system
+- Basic help system
+
+**Phase 4: Enhancement (Weeks 7-8)**
+- Real-time status updates with WebSocket
+- Advanced help system with search
+- Feedback system integration
+- Performance optimization and testing
+
+---
+
+*✅ Technology stack analysis complete. Ready to proceed with development environment setup.*
 
 ---
 
 ## 📝 Open Questions for Discussion
 
-1. **CSS Approach:** Should we use Bootstrap classes directly or create custom CSS on top?
-2. **JavaScript Bundling:** Do we want a build process for JavaScript, or keep it simple with CDN includes?
-3. **Database Configuration:** Should we support database URL configuration for different environments?
-4. **Real-time Features:** Should we implement WebSocket support from the beginning or add it later?
-5. **API Design:** Should we create REST API endpoints alongside web interface for future extensibility?
+### ✅ RESOLVED: Asset Delivery Method 
+**Decision: Local Files (Self-Contained OVA)**
+
+**Rationale Based on Requirements:**
+- **OVA Deployment Priority:** Primary deployment method is OVA template distribution
+- **Air-Gapped Labs:** Many lab environments may have limited or no internet connectivity
+- **Self-Contained Deployment:** OVA packages should be completely self-sufficient
+- **Predictable Performance:** Local assets ensure consistent load times
+- **Security:** Reduces external dependencies and potential attack vectors
+
+**Implementation:**
+```bash
+app/static/vendor/
+├── bootstrap/
+│   ├── css/bootstrap.min.css
+│   └── js/bootstrap.bundle.min.js
+├── alpinejs/
+│   └── alpine.min.js
+├── socket.io/
+│   └── socket.io.min.js
+└── axios/
+    └── axios.min.js
+```
+
+### ✅ RESOLVED: CSS Customization Approach
+**Decision: Bootstrap + Custom CSS Layer**
+
+**Rationale Based on Requirements:**
+- **Admin-Specific Theme:** Function #2 requires "Admin-specific UI design/theme to distinguish from user portal"
+- **Editable Branding:** Function #7 requires "Lab logo and editable text display"
+- **Professional UI:** Bootstrap provides desktop-focused, professional components
+- **Customization Needs:** Need to support custom themes and lab-specific branding
+
+**Implementation:**
+```css
+/* app/static/css/base.css - Core overrides */
+/* app/static/css/admin.css - Admin-specific theme */
+/* app/static/css/custom.css - User-editable via admin panel */
+```
+
+### ✅ RESOLVED: Real-time Features Implementation Timing
+**Decision: Implement Basic Real-time in Phase 2**
+
+**Rationale Based on Requirements:**
+- **Service Status Updates:** Function #2 requires "service status updated hourly with last update timestamps"
+- **Not Real-time Critical:** Hourly updates indicate periodic refresh is acceptable
+- **Progressive Enhancement:** Start with page refresh, add WebSocket later
+- **Development Simplicity:** Focus on core DHCP/authentication features first
+
+**Implementation:**
+- **Phase 1:** Page refresh for status updates, AJAX for form submissions
+- **Phase 2:** Flask-SocketIO for live status updates and notifications
+- **Phase 3:** Real-time device scanning progress and DHCP lease monitoring
+
+### ✅ RESOLVED: API Design Strategy
+**Decision: Hybrid Approach - Web Interface Priority + Internal APIs**
+
+**Rationale Based on Requirements:**
+- **No External API Requirements:** Functions focus on web interface, not API consumption
+- **Internal Integration Needs:** KEA DHCP API integration, VMware API calls
+- **Future Extensibility:** Internal REST endpoints for AJAX calls and potential future use
+- **Traditional Web App:** Server-side rendering matches admin panel requirements
+
+**Implementation:**
+```python
+# Internal APIs for AJAX calls
+/api/v1/dhcp/status
+/api/v1/devices/scan
+/api/v1/admin/services
+# Web routes for main interface
+/admin/dhcp/
+/admin/devices/
+/admin/help/
+```
+
+### ✅ RESOLVED: Content Management Strategy
+**Decision: Database + File Hybrid with Rich Text Editor**
+
+**Rationale Based on Requirements:**
+- **Admin Content Editor:** Function #6 requires "Rich text editor with Markdown support in admin panel"
+- **Editable Help Content:** Admins need to "edit help content through the admin panel"
+- **Version Control:** Requirements specify "track edits, restore previous versions"
+- **Markdown Support:** Easy editing and version control mentioned
+
+**Implementation:**
+```python
+# Models for editable content
+class HelpContent(db.Model):
+    page_key, title, content_markdown, version, created_at
+class SiteContent(db.Model):
+    key, content, content_type, editable_by_admin
+# Rich text editor: TinyMCE or SimpleMDE for Markdown
+```
 
 ---
 

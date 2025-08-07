@@ -1,9 +1,16 @@
 """
 User Model
 User authentication and management model for the Lab Portal
-"""
-
-from datetime import datetime
+"    def check_password(self, password):
+        """Check if provided password matches stored hash or PAM"""
+        if self.is_admin:
+            # Admin users MUST authenticate via PAM
+            return self._check_pam_password(password)
+        else:
+            # Regular users authenticate via database
+            if not self.password_hash:
+                return False
+            return check_password_hash(self.password_hash, password) datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -49,32 +56,38 @@ class User(UserMixin, db.Model):
     audit_logs = db.relationship('AuditLog', backref='user', lazy='dynamic')
     
     def __init__(self, username, email, first_name, last_name,
-                 password=None, use_pam_auth=False, is_admin=False):
+                 password=None, is_admin=False):
         """Initialize a new user"""
         self.username = username
         self.email = email
         self.first_name = first_name
         self.last_name = last_name
-        self.use_pam_auth = use_pam_auth
         self.is_admin = is_admin
         
-        # Only set password for non-PAM users
-        if password and not use_pam_auth:
+        # Admin users MUST use PAM authentication
+        # Regular users MUST use database authentication
+        if is_admin:
+            self.use_pam_auth = True
+            # Admin users don't need password_hash - they use system credentials
+        else:
+            self.use_pam_auth = False
+            # Regular users must have a password
+            if not password:
+                raise ValueError("Regular users must have a password")
             self.set_password(password)
-        elif not use_pam_auth and not password:
-            # Non-PAM users must have a password
-            raise ValueError("Password required for non-PAM users")
     
     def set_password(self, password):
         """Set user password with secure hashing"""
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
-        """Check if provided password matches stored hash"""
-        if self.use_pam_auth:
+        """Check if provided password matches stored hash or PAM"""
+        if self.is_admin:
+            # Admin users MUST authenticate via PAM
             return self._check_pam_password(password)
         else:
-            if self.password_hash is None:
+            # Regular users authenticate via database
+            if not self.password_hash:
                 return False
             return check_password_hash(self.password_hash, password)
     

@@ -7,6 +7,11 @@ import os
 from datetime import timedelta
 
 
+# Get the base directory of the project
+basedir = os.path.abspath(os.path.dirname(__file__))
+project_dir = os.path.dirname(basedir)  # Go up one level from config/
+
+
 class Config:
     """Base configuration class"""
     
@@ -15,8 +20,9 @@ class Config:
                   'dev-secret-key-change-in-production')
     
     # Database Configuration
+    base_db_path = os.path.join(project_dir, 'instance', 'lab_portal.db')
     SQLALCHEMY_DATABASE_URI = (os.environ.get('DATABASE_URL') or
-                               'sqlite:///lab_portal.db')
+                               'sqlite:///' + base_db_path)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_RECORD_QUERIES = True
     
@@ -73,12 +79,16 @@ class DevelopmentConfig(Config):
     TESTING = False
     
     # Development Database (SQLite)
+    dev_db_path = os.path.join(project_dir, 'instance', 'lab_portal_dev.db')
     SQLALCHEMY_DATABASE_URI = (os.environ.get('DATABASE_URL') or
-                               'sqlite:///lab_portal_dev.db')
+                               'sqlite:///' + dev_db_path)
     
     # Relaxed security for development
     BCRYPT_LOG_ROUNDS = 4
     WTF_CSRF_ENABLED = False  # Disable CSRF for API testing
+    
+    # Disable rate limiting for development
+    RATELIMIT_ENABLED = False
     
     # Development logging
     LOG_LEVEL = 'DEBUG'

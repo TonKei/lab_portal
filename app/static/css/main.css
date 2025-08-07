@@ -1,0 +1,126 @@
+/* Lab Portal Custom Styles */
+
+/* Custom theme colors */
+:root {
+    --lab-primary: #2c3e50;
+    --lab-secondary: #3498db;
+    --lab-success: #27ae60;
+    --lab-warning: #f39c12;
+    --lab-danger: #e74c3c;
+    --lab-info: #17a2b8;
+    --lab-light: #f8f9fa;
+    --lab-dark: #343a40;
+}
+
+/* Brand styling */
+.navbar-brand {
+    font-weight: 600;
+    color: var(--lab-primary) !important;
+}
+
+/* Custom card styling */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Authentication forms */
+.auth-form {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.auth-card {
+    border: none;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* Dashboard stats cards */
+.stats-card {
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Form styling */
+.form-label {
+    font-weight: 500;
+    color: var(--lab-dark);
+}
+
+.form-control:focus {
+    border-color: var(--lab-secondary);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+/* Button styling */
+.btn-lab-primary {
+    background-color: var(--lab-primary);
+    border-color: var(--lab-primary);
+    color: white;
+}
+
+.btn-lab-primary:hover {
+    background-color: #1a252f;
+    border-color: #1a252f;
+    color: white;
+}
+
+/* Alert styling */
+.alert {
+    border-radius: 8px;
+    border: none;
+}
+
+/* Loading animations */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+    .auth-form {
+        padding: 0 1rem;
+    }
+    
+    .stats-card {
+        padding: 1rem;
+    }
+}
+
+/* Utility classes */
+.text-lab-primary {
+    color: var(--lab-primary) !important;
+}
+
+.bg-lab-primary {
+    background-color: var(--lab-primary) !important;
+}
+
+.border-lab-primary {
+    border-color: var(--lab-primary) !important;
+}
+
+/* Navigation tweaks */
+.navbar-nav .nav-link {
+    font-weight: 500;
+    transition: color 0.15s ease-in-out;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--lab-secondary) !important;
+}
+
+/* Footer */
+.footer {
+    background-color: var(--lab-light);
+    border-top: 1px solid #dee2e6;
+    margin-top: auto;
+    padding: 1rem 0;
+}

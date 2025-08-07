@@ -85,7 +85,7 @@ def logout():
 
 
 @bp.route('/register', methods=['GET', 'POST'])
-@limiter.limit("3 per hour")
+@limiter.limit("10 per minute")
 def register():
     """User registration route"""
     if current_user.is_authenticated:

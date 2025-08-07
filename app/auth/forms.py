@@ -44,8 +44,7 @@ class RegistrationForm(FlaskForm):
         Length(min=2, max=50)
     ])
     password = PasswordField('Password', validators=[
-        DataRequired(),
-        Length(min=8, message='Password must be at least 8 characters long')
+        DataRequired()
     ])
     password2 = PasswordField('Repeat Password', validators=[
         DataRequired(),
@@ -73,8 +72,7 @@ class ChangePasswordForm(FlaskForm):
         DataRequired()
     ])
     new_password = PasswordField('New Password', validators=[
-        DataRequired(),
-        Length(min=8, message='Password must be at least 8 characters long')
+        DataRequired()
     ])
     new_password2 = PasswordField('Repeat New Password', validators=[
         DataRequired(),

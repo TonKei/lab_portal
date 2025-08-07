@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>User Management</h1>
+            <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Admin
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">All Users</h5>
+            </div>
+            <div class="card-body">
+                {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Role</th>
+                                    <th>Auth Type</th>
+                                    <th>Created</th>
+                                    <th>Last Login</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                    <tr>
+                                        <td>{{ user.id }}</td>
+                                        <td>
+                                            <strong>{{ user.username }}</strong>
+                                            {% if user.id == current_user.id %}
+                                                <span class="badge bg-info ms-1">You</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ user.full_name }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>
+                                            {% if user.active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if user.is_admin %}
+                                                <span class="badge bg-warning">Admin</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">User</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                        <td>
+                                            {% if user.last_login %}
+                                                {{ user.last_login.strftime('%Y-%m-%d %H:%M') }}
+                                            {% else %}
+                                                <span class="text-muted">Never</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if user.id != current_user.id %}
+                                                <a href="{{ url_for('admin.toggle_user', user_id=user.id) }}" 
+                                                   class="btn btn-sm {% if user.active %}btn-warning{% else %}btn-success{% endif %}"
+                                                   onclick="return confirm('Are you sure you want to {{ 'deactivate' if user.active else 'activate' }} this user?')">
+                                                    {% if user.active %}
+                                                        <i class="bi bi-person-x"></i> Deactivate
+                                                    {% else %}
+                                                        <i class="bi bi-person-check"></i> Activate
+                                                    {% endif %}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">Current User</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted">
+                        <i class="bi bi-people fs-1"></i>
+                        <p>No users found</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}

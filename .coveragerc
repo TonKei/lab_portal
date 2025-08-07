@@ -1,0 +1,27 @@
+[run]
+source = app
+omit = 
+    app/__pycache__/*
+    app/*/__pycache__/*
+    */venv/*
+    */migrations/*
+    tests/*
+    conftest.py
+    app.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*\(Protocol\):
+    @(abc\.)?abstractmethod
+
+[html]
+directory = htmlcov
+title = Lab Portal Coverage Report

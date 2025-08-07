@@ -33,8 +33,18 @@ def create_app(config_name=None):
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'development')
     
+    # Set the environment variable so get_config() uses the right config
+    os.environ['FLASK_ENV'] = config_name
     config_class = get_config()
     app.config.from_object(config_class)
+    
+    # Force development database if in development mode
+    if config_name == 'development':
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        project_dir = os.path.dirname(basedir)
+        dev_db_path = os.path.join(project_dir, 'instance',
+                                   'lab_portal_dev.db')
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + dev_db_path
     
     # Initialize extensions with app
     db.init_app(app)
@@ -47,7 +57,7 @@ def create_app(config_name=None):
         limiter.init_app(app)
     
     # Configure login manager
-    login_manager.login_view = 'auth.login'
+    login_manager.login_view = 'auth.login'  # type: ignore
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
     
@@ -62,9 +72,22 @@ def create_app(config_name=None):
     # Register blueprints
     register_blueprints(app)
     
-    # Create database tables
+    # Create database tables with error handling
     with app.app_context():
-        db.create_all()
+        try:
+            # Ensure instance directory exists
+            db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+            if db_uri.startswith('sqlite:///'):
+                db_path = db_uri.replace('sqlite:///', '')
+                instance_dir = os.path.dirname(db_path)
+                if instance_dir and not os.path.exists(instance_dir):
+                    os.makedirs(instance_dir, exist_ok=True)
+            
+            db.create_all()
+            app.logger.info('Database tables created successfully')
+        except Exception as e:
+            app.logger.error(f'Failed to create database tables: {e}')
+            raise
     
     app.logger.info('Lab Portal application startup complete')
     

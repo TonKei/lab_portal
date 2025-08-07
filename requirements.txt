@@ -1,0 +1,49 @@
+# Lab Portal Management System - Python Dependencies
+# Python Version Requirement: 3.11.x (recommended 3.11.11+)
+# EOL: October 2027 - ensures long-term security support for production deployments
+
+# Core Framework
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Login==0.6.3
+Flask-WTF==1.1.1
+Flask-Limiter==3.5.0
+
+# Database
+SQLAlchemy==2.0.20
+psycopg2-binary==2.9.7  # PostgreSQL
+alembic==1.12.0  # Database migrations
+
+# Authentication & Security
+python-pam==2.0.2
+Werkzeug==2.3.7
+
+# Content Management & Rich Text
+Flask-CKEditor==0.4.6  # Rich text editor integration
+markdown==3.5.1  # Markdown processing for help content
+bleach==6.0.0  # HTML sanitization for user content
+
+# Device Interaction
+pysnmp==4.4.12  # SNMP functionality
+pymodbus==3.4.1  # Modbus TCP client
+python-nmap==0.7.1  # Network scanning
+
+# External API Integration
+requests==2.31.0  # For KEA DHCP API and VMware API calls
+urllib3==2.0.4  # HTTP client library
+
+# Real-time Features (Phase 2)
+Flask-SocketIO==5.3.6
+eventlet==0.33.3
+
+# Scheduling & Background Tasks
+APScheduler==3.10.4  # For hourly service status updates
+
+# Testing
+pytest==7.4.2
+pytest-flask==1.2.0
+pytest-cov==4.1.0
+
+# Development Dependencies
+Flask-Migrate==4.0.5  # Database migration management
+python-dotenv==1.0.0  # Environment variable management

@@ -1,0 +1,212 @@
+"""
+User Model
+User authentication and management model for the Lab Portal
+"""
+
+from datetime import datetime
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from app import db
+
+
+class User(UserMixin, db.Model):
+    """User model for authentication and authorization"""
+    
+    __tablename__ = 'users'
+    
+    # Primary key
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # User identification
+    username = db.Column(db.String(80), unique=True, nullable=False,
+                         index=True)
+    email = db.Column(db.String(120), unique=True, nullable=False,
+                      index=True)
+    
+    # Authentication
+    password_hash = db.Column(db.String(255), nullable=False)
+    
+    # User information
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
+    
+    # Authorization
+    active = db.Column(db.Boolean, default=True, nullable=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # PAM Integration
+    use_pam_auth = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow,
+                           onupdate=datetime.utcnow, nullable=False)
+    last_login = db.Column(db.DateTime)
+    
+    # Relationships
+    audit_logs = db.relationship('AuditLog', backref='user', lazy='dynamic')
+    
+    def __init__(self, username, email, first_name, last_name,
+                 password=None, use_pam_auth=False, is_admin=False):
+        """Initialize a new user"""
+        self.username = username
+        self.email = email
+        self.first_name = first_name
+        self.last_name = last_name
+        self.use_pam_auth = use_pam_auth
+        self.is_admin = is_admin
+        
+        if password:
+            self.set_password(password)
+    
+    def set_password(self, password):
+        """Set user password with secure hashing"""
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        """Check if provided password matches stored hash"""
+        if self.use_pam_auth:
+            return self._check_pam_password(password)
+        else:
+            return check_password_hash(self.password_hash, password)
+    
+    def _check_pam_password(self, password):
+        """Authenticate against PAM system"""
+        try:
+            import pam
+            p = pam.pam()
+            return p.authenticate(self.username, password)
+        except ImportError:
+            # Fallback to database authentication if PAM not available
+            return check_password_hash(self.password_hash, password)
+        except Exception:
+            return False
+    
+    def update_last_login(self):
+        """Update the last login timestamp"""
+        self.last_login = datetime.utcnow()
+        db.session.commit()
+    
+    @property
+    def full_name(self):
+        """Return user's full name"""
+        return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def is_active(self):
+        """Required by Flask-Login - return if user account is active"""
+        return self.active
+    
+    @property
+    def is_authenticated(self):
+        """Required by Flask-Login"""
+        return True
+    
+    @property
+    def is_anonymous(self):
+        """Required by Flask-Login"""
+        return False
+    
+    def get_id(self):
+        """Required by Flask-Login"""
+        return str(self.id)
+    
+    def to_dict(self):
+        """Convert user object to dictionary for JSON serialization"""
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'full_name': self.full_name,
+            'is_active': self.active,
+            'is_admin': self.is_admin,
+            'use_pam_auth': self.use_pam_auth,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+            'last_login': (self.last_login.isoformat()
+                           if self.last_login else None)
+        }
+    
+    @staticmethod
+    def create_admin_user(username, email, first_name, last_name, password):
+        """Create an administrative user"""
+        admin_user = User(
+            username=username,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            password=password,
+            is_admin=True
+        )
+        db.session.add(admin_user)
+        db.session.commit()
+        return admin_user
+    
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+
+class AuditLog(db.Model):
+    """Audit logging for user actions"""
+    
+    __tablename__ = 'audit_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    action = db.Column(db.String(100), nullable=False)
+    resource_type = db.Column(db.String(50), nullable=False)
+    resource_id = db.Column(db.String(100))
+    details = db.Column(db.Text)
+    ip_address = db.Column(db.String(45))  # IPv6 compatible
+    user_agent = db.Column(db.String(255))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow,
+                          nullable=False)
+    
+    def __init__(self, user_id, action, resource_type, resource_id=None,
+                 details=None, ip_address=None, user_agent=None):
+        self.user_id = user_id
+        self.action = action
+        self.resource_type = resource_type
+        self.resource_id = resource_id
+        self.details = details
+        self.ip_address = ip_address
+        self.user_agent = user_agent
+    
+    @staticmethod
+    def log_action(user_id, action, resource_type, resource_id=None,
+                   details=None, ip_address=None, user_agent=None):
+        """Log a user action"""
+        log_entry = AuditLog(
+            user_id=user_id,
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            details=details,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        return log_entry
+    
+    def to_dict(self):
+        """Convert audit log to dictionary"""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'username': self.user.username if self.user else None,
+            'action': self.action,
+            'resource_type': self.resource_type,
+            'resource_id': self.resource_id,
+            'details': self.details,
+            'ip_address': self.ip_address,
+            'user_agent': self.user_agent,
+            'timestamp': self.timestamp.isoformat()
+        }
+    
+    def __repr__(self):
+        return f'<AuditLog {self.action} by User {self.user_id}>'
